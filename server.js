@@ -28,7 +28,7 @@ app.use(express.json());
 //Rate Limiting
 const limiter = rateLimit({
   windowsMs: 10 * 60 * 1000, //10 mins
-  max: 10000,
+  max: 100,
 });
 app.use(limiter);
 
@@ -66,3 +66,5 @@ process.on(`unhandledRejection`, (err, promise) => {
   // Colse server & exit process
   server.close(() => process.exit(1));
 });
+
+

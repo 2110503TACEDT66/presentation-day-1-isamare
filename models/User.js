@@ -63,7 +63,7 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Cascade delete appointments when a coworking is deleted
+// Cascade delete reservations when a user is deleted
 UserSchema.pre(
   "deleteOne",
   { document: true, query: false },

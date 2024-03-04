@@ -110,31 +110,86 @@ exports.logout = async (req, res, next) => {
   });
 };
 
-//@desc         Update account user
-//@routes       PUT /api/project/auth/update
-//@access       Private
-exports.updateMe = async (req, res, next) => {
+// desc    Get all users
+// route   GET /api/project/auth/getallusers
+// access  Private
+exports.getAllUsers = async (req, res, next) => {
   try {
-    if (req.body.role) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Can not change role" });
-    }
-    const user = await User.findByIdAndUpdate(req.user.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    let query;
 
-    if (!user) {
-      return res.status(400).json({ success: false, message: "not user" });
+    // Copy req.query
+    const reqQuery = { ...req.query };
+
+    // Fields to exclude
+    const removeFields = ["select", "sort", "page", "limit"];
+
+    // Loop over remove fields and delete them from reqQuery
+    removeFields.forEach((param) => delete reqQuery[param]);
+
+    // Create query string
+    let queryStr = JSON.stringify(reqQuery);
+
+    // Create operators {$gt, $gte, etc}
+    queryStr = queryStr.replace(
+      /\b(gt|gte|lt|lte|in)\b/g,
+      (match) => `$${match}`
+    );
+
+    // Finding resource
+    query = User.find(JSON.parse(queryStr)).populate("reservations");
+    query = query.find({ role: "user" });
+
+    // Select Fields
+    if (req.query.select) {
+      const fields = req.query.select.split(",").join(" ");
+      query = query.select(fields);
+    }
+
+    // Sort
+    if (req.query.sort) {
+      const sortBy = req.query.sort.split(",").join(" ");
+      query = query.sort(sortBy);
+    } else {
+      query = query.sort("email");
+    }
+
+    // Pagination
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 25;
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const total = await User.find({ role: "user" }).countDocuments();
+
+    query = query.skip(startIndex).limit(limit);
+
+    // Executing query
+    const users = await query;
+
+    // Pagination query
+    const pagination = {};
+    if (endIndex < total) {
+      pagination.next = {
+        page: page + 1,
+        limit,
+      };
+    }
+    if (startIndex > 0) {
+      pagination.prev = {
+        page: page - 1,
+        limit,
+      };
     }
 
     res.status(200).json({
       success: true,
-      data: user,
+      count: users.length,
+      pagination,
+      data: users,
     });
   } catch (err) {
-    res.status(400).json({ success: false });
+    res.status(400).json({
+      success: false,
+    });
   }
 };
 
