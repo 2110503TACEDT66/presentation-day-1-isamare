@@ -42,6 +42,10 @@ const CoworkingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    picture: {
+      type: String,
+      required: true,
+    },
   },
   {
     toJSON: { virtuals: true },
